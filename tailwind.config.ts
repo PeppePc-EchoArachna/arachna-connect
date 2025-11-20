@@ -47,6 +47,16 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        artist: {
+          DEFAULT: "hsl(var(--artist))",
+          foreground: "hsl(var(--artist-foreground))",
+          glow: "hsl(var(--artist-glow))",
+        },
+        organizer: {
+          DEFAULT: "hsl(var(--organizer))",
+          foreground: "hsl(var(--organizer-foreground))",
+          glow: "hsl(var(--organizer-glow))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -84,6 +94,9 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "float": "float 3s ease-in-out infinite",
+        "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+        "web-shimmer": "web-shimmer 4s ease-in-out infinite",
       },
     },
   },
