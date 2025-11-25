@@ -134,7 +134,7 @@ const Feed = () => {
         });
       }
 
-      if (branchFilter && currentProfile.user_type === 'organizer') {
+      if (branchFilter && branchFilter !== 'all' && currentProfile.user_type === 'organizer') {
         formattedData = formattedData.filter(p =>
           p.artist_profile?.artistic_branches?.includes(branchFilter)
         );
@@ -278,8 +278,8 @@ const Feed = () => {
                     <SelectTrigger className="w-48">
                       <SelectValue placeholder="Ramo artístico" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Todos</SelectItem>
+                    <SelectContent className="bg-popover z-50">
+                      <SelectItem value="all">Todos</SelectItem>
                       {Object.entries(branchLabels).map(([key, label]) => (
                         <SelectItem key={key} value={key}>{label}</SelectItem>
                       ))}
