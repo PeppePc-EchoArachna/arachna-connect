@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import webPattern from "@/assets/web-pattern.jpg";
 import { z } from "zod";
+import { AvatarUpload } from "@/components/AvatarUpload";
+import { PortfolioUpload } from "@/components/PortfolioUpload";
 
 const profileSchema = z.object({
   full_name: z.string().trim().min(2, "Nome deve ter no mínimo 2 caracteres").max(100),
@@ -29,6 +30,8 @@ const Profile = () => {
   const [pronouns, setPronouns] = useState("");
   const [bio, setBio] = useState("");
   const [userType, setUserType] = useState<"artist" | "organizer" | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const [portfolioItems, setPortfolioItems] = useState<string[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -54,6 +57,21 @@ const Profile = () => {
           setPronouns(data.pronouns || "");
           setBio(data.bio || "");
           setUserType(data.user_type);
+          setAvatarUrl(data.avatar_url || "");
+        }
+
+        if (data?.user_type === 'artist') {
+          const { data: artistProfile } = await supabase
+            .from("artist_profiles")
+            .select("portfolio_items")
+            .eq("profile_id", user.id)
+            .single();
+
+          if (artistProfile?.portfolio_items && Array.isArray(artistProfile.portfolio_items)) {
+            setPortfolioItems(
+              artistProfile.portfolio_items.map((item: any) => item.url || item)
+            );
+          }
         }
       } catch (error: any) {
         toast.error(error.message || "Erro ao carregar perfil");
@@ -132,14 +150,13 @@ const Profile = () => {
 
         <Card className="border-border/50 backdrop-blur-sm bg-card/90">
           <CardHeader>
-            <div className="flex items-center gap-4 mb-4">
-              <Avatar className="w-20 h-20">
-                <AvatarImage src={user?.user_metadata?.avatar_url} />
-                <AvatarFallback>
-                  {fullName.substring(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div>
+            <div className="mb-4">
+              <AvatarUpload
+                userId={user!.id}
+                currentAvatarUrl={avatarUrl}
+                onUploadComplete={setAvatarUrl}
+              />
+              <div className="text-center mt-4">
                 <CardTitle className={userType === "artist" ? "text-artist-glow" : "text-organizer-glow"}>
                   Meu Perfil
                 </CardTitle>
@@ -189,6 +206,17 @@ const Profile = () => {
                   {bio.length}/500 caracteres
                 </p>
               </div>
+
+              {userType === 'artist' && (
+                <div className="space-y-2">
+                  <Label>Portfólio</Label>
+                  <PortfolioUpload
+                    userId={user!.id}
+                    currentItems={portfolioItems}
+                    onUploadComplete={setPortfolioItems}
+                  />
+                </div>
+              )}
 
               <Button
                 type="submit"

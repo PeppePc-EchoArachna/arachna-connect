@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, User } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LogOut, User, Heart, MessageCircle, Search } from "lucide-react";
 import { toast } from "sonner";
 import webPattern from "@/assets/web-pattern.jpg";
 
@@ -18,10 +20,12 @@ interface ProfileData {
   user_type: "artist" | "organizer";
   artist_profile?: {
     artistic_branches: string[];
+    location?: string;
   };
   organizer_profile?: {
     preferred_branches: string[];
     company_name: string | null;
+    location?: string;
   };
 }
 
@@ -31,6 +35,10 @@ const Feed = () => {
   const [profiles, setProfiles] = useState<ProfileData[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserType, setCurrentUserType] = useState<"artist" | "organizer" | null>(null);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearchTerm] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [branchFilter, setBranchFilter] = useState("");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -39,65 +47,137 @@ const Feed = () => {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    const fetchProfiles = async () => {
-      if (!user) return;
-
-      try {
-        // Get current user profile
-        const { data: currentProfile } = await supabase
-          .from("profiles")
-          .select("user_type")
-          .eq("id", user.id)
-          .single();
-
-        if (!currentProfile) {
-          navigate("/");
-          return;
-        }
-
-        setCurrentUserType(currentProfile.user_type);
-
-        // Fetch opposite type profiles
-        const targetType = currentProfile.user_type === "artist" ? "organizer" : "artist";
-        
-        const { data, error } = await supabase
-          .from("profiles")
-          .select(`
-            id,
-            full_name,
-            bio,
-            avatar_url,
-            user_type,
-            artist_profiles (
-              artistic_branches
-            ),
-            organizer_profiles (
-              preferred_branches,
-              company_name
-            )
-          `)
-          .eq("user_type", targetType)
-          .neq("id", user.id)
-          .limit(20);
-
-        if (error) throw error;
-
-        const formattedData = data?.map(profile => ({
-          ...profile,
-          artist_profile: profile.artist_profiles?.[0],
-          organizer_profile: profile.organizer_profiles?.[0],
-        })) || [];
-
-        setProfiles(formattedData);
-      } catch (error: any) {
-        toast.error(error.message || "Erro ao carregar perfis");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfiles();
+    if (user) {
+      fetchProfiles();
+      fetchFavorites();
+    }
   }, [user, navigate]);
+
+  const fetchFavorites = async () => {
+    if (!user) return;
+    
+    try {
+      const { data } = await supabase
+        .from('favorites')
+        .select('favorited_user_id')
+        .eq('user_id', user.id);
+
+      if (data) {
+        setFavorites(new Set(data.map(f => f.favorited_user_id)));
+      }
+    } catch (error) {
+      console.error('Error fetching favorites:', error);
+    }
+  };
+
+  const fetchProfiles = async () => {
+    if (!user) return;
+
+    try {
+      // Get current user profile
+      const { data: currentProfile } = await supabase
+        .from("profiles")
+        .select("user_type")
+        .eq("id", user.id)
+        .single();
+
+      if (!currentProfile) {
+        navigate("/");
+        return;
+      }
+
+      setCurrentUserType(currentProfile.user_type);
+
+      // Fetch opposite type profiles
+      const targetType = currentProfile.user_type === "artist" ? "organizer" : "artist";
+      
+      let query = supabase
+        .from("profiles")
+        .select(`
+          id,
+          full_name,
+          bio,
+          avatar_url,
+          user_type,
+          artist_profiles (
+            artistic_branches,
+            location
+          ),
+          organizer_profiles (
+            preferred_branches,
+            company_name,
+            location
+          )
+        `)
+        .eq("user_type", targetType)
+        .neq("id", user.id);
+
+      if (searchTerm) {
+        query = query.ilike('full_name', `%${searchTerm}%`);
+      }
+
+      const { data, error } = await query.limit(20);
+
+      if (error) throw error;
+
+      let formattedData = data?.map(profile => ({
+        ...profile,
+        artist_profile: profile.artist_profiles?.[0],
+        organizer_profile: profile.organizer_profiles?.[0],
+      })) || [];
+
+      // Apply filters
+      if (locationFilter) {
+        formattedData = formattedData.filter(p => {
+          const location = p.artist_profile?.location || p.organizer_profile?.location;
+          return location?.toLowerCase().includes(locationFilter.toLowerCase());
+        });
+      }
+
+      if (branchFilter && currentProfile.user_type === 'organizer') {
+        formattedData = formattedData.filter(p =>
+          p.artist_profile?.artistic_branches?.includes(branchFilter)
+        );
+      }
+
+      setProfiles(formattedData);
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao carregar perfis");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleFavorite = async (profileId: string) => {
+    if (!user) return;
+
+    try {
+      if (favorites.has(profileId)) {
+        await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('favorited_user_id', profileId);
+        
+        setFavorites(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(profileId);
+          return newSet;
+        });
+        toast.success("Removido dos favoritos");
+      } else {
+        await supabase
+          .from('favorites')
+          .insert({ user_id: user.id, favorited_user_id: profileId });
+        
+        setFavorites(prev => new Set(prev).add(profileId));
+        toast.success("Adicionado aos favoritos!");
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      toast.error("Erro ao atualizar favoritos");
+    }
+  };
 
   const branchLabels: Record<string, string> = {
     music: "Música",
@@ -145,6 +225,13 @@ const Feed = () => {
               <Button
                 variant="ghost"
                 size="icon"
+                onClick={() => navigate("/messages")}
+              >
+                <MessageCircle className="w-5 h-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => navigate("/profile")}
               >
                 <User className="w-5 h-5" />
@@ -163,11 +250,45 @@ const Feed = () => {
         {/* Feed */}
         <main className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto">
-            <h2 className="text-xl font-semibold mb-6">
-              {currentUserType === "artist" 
-                ? "Organizadores que podem te contratar" 
-                : "Artistas disponíveis"}
-            </h2>
+            <div className="mb-6 space-y-4">
+              <h2 className="text-xl font-semibold">
+                {currentUserType === "artist" 
+                  ? "Organizadores que podem te contratar" 
+                  : "Artistas disponíveis"}
+              </h2>
+
+              <div className="flex gap-2 flex-wrap">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Input
+                  placeholder="Localização..."
+                  value={locationFilter}
+                  onChange={(e) => setLocationFilter(e.target.value)}
+                  className="w-40"
+                />
+                {currentUserType === 'organizer' && (
+                  <Select value={branchFilter} onValueChange={setBranchFilter}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Ramo artístico" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Todos</SelectItem>
+                      {Object.entries(branchLabels).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <Button onClick={fetchProfiles}>Filtrar</Button>
+              </div>
+            </div>
 
             <div className="space-y-4">
               {profiles.length === 0 ? (
@@ -182,8 +303,7 @@ const Feed = () => {
                 profiles.map((profile) => (
                   <Card 
                     key={profile.id} 
-                    className="border-border/50 backdrop-blur-sm bg-card/90 hover:border-accent transition-all cursor-pointer"
-                    onClick={() => navigate(`/profile/${profile.id}`)}
+                    className="border-border/50 backdrop-blur-sm bg-card/90 hover:border-accent transition-all"
                   >
                     <CardHeader>
                       <div className="flex items-start gap-4">
@@ -202,6 +322,24 @@ const Feed = () => {
                               {profile.organizer_profile.company_name}
                             </CardDescription>
                           )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => toggleFavorite(profile.id)}
+                          >
+                            <Heart
+                              className={`h-5 w-5 ${favorites.has(profile.id) ? 'fill-artist text-artist' : ''}`}
+                            />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => navigate("/messages", { state: { userId: profile.id } })}
+                          >
+                            <MessageCircle className="h-5 w-5" />
+                          </Button>
                         </div>
                       </div>
                     </CardHeader>
