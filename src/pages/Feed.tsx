@@ -303,7 +303,8 @@ const Feed = () => {
                 profiles.map((profile) => (
                   <Card 
                     key={profile.id} 
-                    className="border-border/50 backdrop-blur-sm bg-card/90 hover:border-accent transition-all"
+                    className="border-border/50 backdrop-blur-sm bg-card/90 hover:border-accent transition-all cursor-pointer"
+                    onClick={() => navigate(`/profile/${profile.id}`)}
                   >
                     <CardHeader>
                       <div className="flex items-start gap-4">
@@ -323,11 +324,14 @@ const Feed = () => {
                             </CardDescription>
                           )}
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => toggleFavorite(profile.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(profile.id);
+                            }}
                           >
                             <Heart
                               className={`h-5 w-5 ${favorites.has(profile.id) ? 'fill-artist text-artist' : ''}`}
@@ -336,7 +340,10 @@ const Feed = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => navigate("/messages", { state: { userId: profile.id } })}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate("/messages", { state: { userId: profile.id } });
+                            }}
                           >
                             <MessageCircle className="h-5 w-5" />
                           </Button>
