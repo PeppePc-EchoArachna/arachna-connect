@@ -18,6 +18,7 @@ const profileSchema = z.object({
   full_name: z.string().trim().min(2, "Nome deve ter no mínimo 2 caracteres").max(100),
   pronouns: z.string().trim().max(50).optional(),
   bio: z.string().trim().max(500).optional(),
+  phone: z.string().trim().max(20).optional(),
 });
 
 const Profile = () => {
@@ -29,6 +30,7 @@ const Profile = () => {
   const [fullName, setFullName] = useState("");
   const [pronouns, setPronouns] = useState("");
   const [bio, setBio] = useState("");
+  const [phone, setPhone] = useState("");
   const [userType, setUserType] = useState<"artist" | "organizer" | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string>("");
   const [portfolioItems, setPortfolioItems] = useState<string[]>([]);
@@ -56,6 +58,7 @@ const Profile = () => {
           setFullName(data.full_name);
           setPronouns(data.pronouns || "");
           setBio(data.bio || "");
+          setPhone(data.phone || "");
           setUserType(data.user_type);
           setAvatarUrl(data.avatar_url || "");
         }
@@ -91,7 +94,8 @@ const Profile = () => {
       const validatedData = profileSchema.parse({ 
         full_name: fullName, 
         pronouns, 
-        bio 
+        bio,
+        phone 
       });
 
       setSaving(true);
@@ -102,6 +106,7 @@ const Profile = () => {
           full_name: validatedData.full_name,
           pronouns: validatedData.pronouns || null,
           bio: validatedData.bio || null,
+          phone: validatedData.phone || null,
         })
         .eq("id", user.id);
 
@@ -191,6 +196,19 @@ const Profile = () => {
                   />
                 </div>
               )}
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Celular (opcional)</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="(11) 99999-9999"
+                  className="bg-background/50"
+                  maxLength={20}
+                />
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="bio">Bio (opcional)</Label>

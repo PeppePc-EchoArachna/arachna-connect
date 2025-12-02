@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Heart, MessageCircle } from "lucide-react";
+import { ArrowLeft, Heart, MessageCircle, Phone, Mail } from "lucide-react";
 import { toast } from "sonner";
 import webPattern from "@/assets/web-pattern.jpg";
 
 interface ProfileData {
   id: string;
   full_name: string;
+  email: string;
+  phone?: string;
   pronouns?: string;
   bio?: string;
   avatar_url?: string;
@@ -259,6 +261,29 @@ export default function PublicProfile() {
           </CardHeader>
 
           <CardContent className="space-y-6">
+            {/* Contact Section */}
+            <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+              <h3 className="font-semibold mb-3">Contato</h3>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <a
+                  href={`mailto:${profile.email}`}
+                  className="flex items-center gap-2 px-4 py-2 rounded-md bg-background hover:bg-accent transition-colors"
+                >
+                  <Mail className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm">{profile.email}</span>
+                </a>
+                {profile.phone && (
+                  <a
+                    href={`tel:${profile.phone}`}
+                    className="flex items-center gap-2 px-4 py-2 rounded-md bg-background hover:bg-accent transition-colors"
+                  >
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm">{profile.phone}</span>
+                  </a>
+                )}
+              </div>
+            </div>
+
             {profile.bio && (
               <div>
                 <h3 className="font-semibold mb-2">Sobre</h3>
