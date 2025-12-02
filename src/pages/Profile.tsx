@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import webPattern from "@/assets/web-pattern.jpg";
@@ -21,6 +23,36 @@ const profileSchema = z.object({
   phone: z.string().trim().max(20).optional(),
 });
 
+const eventTypes = [
+  { id: "corporate", label: "Eventos Corporativos" },
+  { id: "wedding", label: "Casamentos" },
+  { id: "birthday", label: "Aniversários" },
+  { id: "festival", label: "Festivais" },
+  { id: "concert", label: "Shows/Concertos" },
+  { id: "private_party", label: "Festas Privadas" },
+  { id: "cultural", label: "Eventos Culturais" },
+  { id: "sports", label: "Eventos Esportivos" },
+  { id: "conference", label: "Conferências" },
+  { id: "other", label: "Outro" },
+];
+
+const budgetRanges = [
+  { id: "up_to_1k", label: "Até R$ 1.000" },
+  { id: "1k_5k", label: "R$ 1.000 - R$ 5.000" },
+  { id: "5k_10k", label: "R$ 5.000 - R$ 10.000" },
+  { id: "10k_25k", label: "R$ 10.000 - R$ 25.000" },
+  { id: "25k_50k", label: "R$ 25.000 - R$ 50.000" },
+  { id: "above_50k", label: "Acima de R$ 50.000" },
+];
+
+const eventFrequencies = [
+  { id: "weekly", label: "Semanalmente" },
+  { id: "monthly", label: "Mensalmente" },
+  { id: "quarterly", label: "Trimestralmente" },
+  { id: "yearly", label: "Anualmente" },
+  { id: "occasional", label: "Ocasionalmente" },
+];
+
 const Profile = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -34,6 +66,12 @@ const Profile = () => {
   const [userType, setUserType] = useState<"artist" | "organizer" | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string>("");
   const [portfolioItems, setPortfolioItems] = useState<string[]>([]);
+
+  // Organizer fields
+  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
+  const [budgetRange, setBudgetRange] = useState("");
+  const [eventFrequency, setEventFrequency] = useState("");
+  const [companyName, setCompanyName] = useState("");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -76,6 +114,21 @@ const Profile = () => {
             );
           }
         }
+
+        if (data?.user_type === 'organizer') {
+          const { data: organizerProfile } = await supabase
+            .from("organizer_profiles")
+            .select("*")
+            .eq("profile_id", user.id)
+            .maybeSingle();
+
+          if (organizerProfile) {
+            setSelectedEventTypes(organizerProfile.event_types || []);
+            setBudgetRange(organizerProfile.budget_range || "");
+            setEventFrequency(organizerProfile.event_frequency || "");
+            setCompanyName(organizerProfile.company_name || "");
+          }
+        }
       } catch (error: any) {
         toast.error(error.message || "Erro ao carregar perfil");
       } finally {
@@ -85,6 +138,14 @@ const Profile = () => {
 
     fetchProfile();
   }, [user]);
+
+  const handleToggleEventType = (eventId: string) => {
+    setSelectedEventTypes((prev) =>
+      prev.includes(eventId)
+        ? prev.filter((id) => id !== eventId)
+        : [...prev, eventId]
+    );
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,6 +172,21 @@ const Profile = () => {
         .eq("id", user.id);
 
       if (error) throw error;
+
+      // Update organizer profile if applicable
+      if (userType === "organizer") {
+        const { error: organizerError } = await supabase
+          .from("organizer_profiles")
+          .update({
+            event_types: selectedEventTypes,
+            budget_range: budgetRange || null,
+            event_frequency: eventFrequency || null,
+            company_name: companyName || null,
+          })
+          .eq("profile_id", user.id);
+
+        if (organizerError) throw organizerError;
+      }
 
       toast.success("Perfil atualizado com sucesso!");
     } catch (error) {
@@ -197,6 +273,19 @@ const Profile = () => {
                 </div>
               )}
 
+              {userType === "organizer" && (
+                <div className="space-y-2">
+                  <Label htmlFor="companyName">Nome da Empresa (opcional)</Label>
+                  <Input
+                    id="companyName"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="Nome da sua empresa ou organização"
+                    className="bg-background/50"
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="phone">Celular (opcional)</Label>
                 <Input
@@ -234,6 +323,67 @@ const Profile = () => {
                     onUploadComplete={setPortfolioItems}
                   />
                 </div>
+              )}
+
+              {userType === "organizer" && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Tipos de Eventos</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {eventTypes.map((event) => (
+                        <div
+                          key={event.id}
+                          className="flex items-center space-x-2 p-2 rounded-lg border border-border/50 hover:border-organizer-glow/50 transition-colors cursor-pointer"
+                          onClick={() => handleToggleEventType(event.id)}
+                        >
+                          <Checkbox
+                            id={`event-${event.id}`}
+                            checked={selectedEventTypes.includes(event.id)}
+                            onCheckedChange={() => handleToggleEventType(event.id)}
+                          />
+                          <Label
+                            htmlFor={`event-${event.id}`}
+                            className="cursor-pointer flex-1 text-sm"
+                          >
+                            {event.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="budgetRange">Faixa de Orçamento por Evento</Label>
+                    <Select value={budgetRange} onValueChange={setBudgetRange}>
+                      <SelectTrigger className="bg-background/50">
+                        <SelectValue placeholder="Selecione uma faixa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {budgetRanges.map((range) => (
+                          <SelectItem key={range.id} value={range.id}>
+                            {range.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="eventFrequency">Frequência de Eventos</Label>
+                    <Select value={eventFrequency} onValueChange={setEventFrequency}>
+                      <SelectTrigger className="bg-background/50">
+                        <SelectValue placeholder="Com que frequência organiza eventos?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {eventFrequencies.map((freq) => (
+                          <SelectItem key={freq.id} value={freq.id}>
+                            {freq.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
               )}
 
               <Button
