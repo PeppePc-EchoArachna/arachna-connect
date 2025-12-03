@@ -39,6 +39,7 @@ const Feed = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [branchFilter, setBranchFilter] = useState("");
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -138,6 +139,11 @@ const Feed = () => {
         formattedData = formattedData.filter(p =>
           p.artist_profile?.artistic_branches?.includes(branchFilter)
         );
+      }
+
+      // Apply favorites filter
+      if (showOnlyFavorites) {
+        formattedData = formattedData.filter(p => favorites.has(p.id));
       }
 
       setProfiles(formattedData);
@@ -257,7 +263,7 @@ const Feed = () => {
                   : "Artistas disponíveis"}
               </h2>
 
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap items-center">
                 <div className="relative flex-1 min-w-[200px]">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -286,6 +292,14 @@ const Feed = () => {
                     </SelectContent>
                   </Select>
                 )}
+                <Button
+                  variant={showOnlyFavorites ? "default" : "outline"}
+                  onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
+                  className={showOnlyFavorites ? "bg-artist hover:bg-artist/90" : ""}
+                >
+                  <Heart className={`h-4 w-4 mr-2 ${showOnlyFavorites ? "fill-current" : ""}`} />
+                  Favoritos
+                </Button>
                 <Button onClick={fetchProfiles}>Filtrar</Button>
               </div>
             </div>
