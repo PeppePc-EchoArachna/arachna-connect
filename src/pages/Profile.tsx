@@ -354,7 +354,7 @@ const Profile = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="budgetRange">Faixa de Orçamento por Evento</Label>
-                    <Select value={budgetRange} onValueChange={setBudgetRange}>
+                    <Select value={budgetRange || undefined} onValueChange={setBudgetRange}>
                       <SelectTrigger className="bg-background/50">
                         <SelectValue placeholder="Selecione uma faixa" />
                       </SelectTrigger>
@@ -370,7 +370,7 @@ const Profile = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="eventFrequency">Frequência de Eventos</Label>
-                    <Select value={eventFrequency} onValueChange={setEventFrequency}>
+                    <Select value={eventFrequency || undefined} onValueChange={setEventFrequency}>
                       <SelectTrigger className="bg-background/50">
                         <SelectValue placeholder="Com que frequência organiza eventos?" />
                       </SelectTrigger>
