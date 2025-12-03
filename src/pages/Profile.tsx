@@ -8,6 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import type { Database } from "@/integrations/supabase/types";
+
+type ArtisticBranch = Database["public"]["Enums"]["artistic_branch"];
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
@@ -22,6 +25,20 @@ const profileSchema = z.object({
   bio: z.string().trim().max(500).optional(),
   phone: z.string().trim().max(20).optional(),
 });
+
+const artisticBranches: { id: ArtisticBranch; label: string }[] = [
+  { id: "music", label: "Música" },
+  { id: "dance", label: "Dança" },
+  { id: "theater", label: "Teatro" },
+  { id: "visual_arts", label: "Artes Visuais" },
+  { id: "circus", label: "Circo" },
+  { id: "magic", label: "Mágica" },
+  { id: "comedy", label: "Comédia" },
+  { id: "dj", label: "DJ" },
+  { id: "live_painting", label: "Pintura ao Vivo" },
+  { id: "performance", label: "Performance" },
+  { id: "other", label: "Outro" },
+];
 
 const eventTypes = [
   { id: "corporate", label: "Eventos Corporativos" },
@@ -66,6 +83,7 @@ const Profile = () => {
   const [userType, setUserType] = useState<"artist" | "organizer" | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string>("");
   const [portfolioItems, setPortfolioItems] = useState<string[]>([]);
+  const [selectedArtisticBranches, setSelectedArtisticBranches] = useState<ArtisticBranch[]>([]);
 
   // Organizer fields
   const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
@@ -104,14 +122,19 @@ const Profile = () => {
         if (data?.user_type === 'artist') {
           const { data: artistProfile } = await supabase
             .from("artist_profiles")
-            .select("portfolio_items")
+            .select("portfolio_items, artistic_branches")
             .eq("profile_id", user.id)
-            .single();
+            .maybeSingle();
 
-          if (artistProfile?.portfolio_items && Array.isArray(artistProfile.portfolio_items)) {
-            setPortfolioItems(
-              artistProfile.portfolio_items.map((item: any) => item.url || item)
-            );
+          if (artistProfile) {
+            if (artistProfile.portfolio_items && Array.isArray(artistProfile.portfolio_items)) {
+              setPortfolioItems(
+                artistProfile.portfolio_items.map((item: any) => item.url || item)
+              );
+            }
+            if (Array.isArray(artistProfile.artistic_branches)) {
+              setSelectedArtisticBranches(artistProfile.artistic_branches);
+            }
           }
         }
 
@@ -144,6 +167,14 @@ const Profile = () => {
       prev.includes(eventId)
         ? prev.filter((id) => id !== eventId)
         : [...prev, eventId]
+    );
+  };
+
+  const handleToggleArtisticBranch = (branchId: ArtisticBranch) => {
+    setSelectedArtisticBranches((prev) =>
+      prev.includes(branchId)
+        ? prev.filter((id) => id !== branchId)
+        : [...prev, branchId]
     );
   };
 
@@ -186,6 +217,18 @@ const Profile = () => {
           .eq("profile_id", user.id);
 
         if (organizerError) throw organizerError;
+      }
+
+      // Update artist profile if applicable
+      if (userType === "artist") {
+        const { error: artistError } = await supabase
+          .from("artist_profiles")
+          .update({
+            artistic_branches: selectedArtisticBranches,
+          })
+          .eq("profile_id", user.id);
+
+        if (artistError) throw artistError;
       }
 
       toast.success("Perfil atualizado com sucesso!");
@@ -315,14 +358,38 @@ const Profile = () => {
               </div>
 
               {userType === 'artist' && (
-                <div className="space-y-2">
-                  <Label>Portfólio</Label>
-                  <PortfolioUpload
-                    userId={user!.id}
-                    currentItems={portfolioItems}
-                    onUploadComplete={setPortfolioItems}
-                  />
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label>Ramos Artísticos</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {artisticBranches.map((branch) => (
+                        <label
+                          key={branch.id}
+                          htmlFor={`branch-${branch.id}`}
+                          className="flex items-center space-x-2 p-2 rounded-lg border border-border/50 hover:border-artist-glow/50 transition-colors cursor-pointer"
+                        >
+                          <Checkbox
+                            id={`branch-${branch.id}`}
+                            checked={selectedArtisticBranches.includes(branch.id)}
+                            onCheckedChange={() => handleToggleArtisticBranch(branch.id)}
+                          />
+                          <span className="flex-1 text-sm">
+                            {branch.label}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Portfólio</Label>
+                    <PortfolioUpload
+                      userId={user!.id}
+                      currentItems={portfolioItems}
+                      onUploadComplete={setPortfolioItems}
+                    />
+                  </div>
+                </>
               )}
 
               {userType === "organizer" && (
