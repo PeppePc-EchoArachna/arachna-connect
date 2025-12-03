@@ -9,10 +9,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type ArtisticBranch = Database["public"]["Enums"]["artistic_branch"];
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import webPattern from "@/assets/web-pattern.jpg";
 import { z } from "zod";
@@ -90,6 +101,7 @@ const Profile = () => {
   const [budgetRange, setBudgetRange] = useState("");
   const [eventFrequency, setEventFrequency] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -331,15 +343,20 @@ const Profile = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="phone">Celular (opcional)</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="(11) 99999-9999"
-                  className="bg-background/50"
-                  maxLength={20}
-                />
+                <div className="flex gap-2">
+                  <div className="flex items-center px-3 bg-muted border border-border rounded-md text-sm text-muted-foreground">
+                    +55
+                  </div>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="(11) 99999-9999"
+                    className="bg-background/50 flex-1"
+                    maxLength={20}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -458,6 +475,56 @@ const Profile = () => {
               >
                 {saving ? "Salvando..." : "Salvar Alterações"}
               </Button>
+
+              <div className="pt-6 border-t border-border/50">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      className="w-full"
+                      disabled={deleting}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      {deleting ? "Apagando..." : "Apagar Conta"}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. Isso irá permanentemente apagar sua conta
+                        e remover todos os seus dados dos nossos servidores.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={async () => {
+                          setDeleting(true);
+                          try {
+                            const { data: { session } } = await supabase.auth.getSession();
+                            if (!session) throw new Error("No session");
+                            
+                            const response = await supabase.functions.invoke("delete-account");
+                            if (response.error) throw response.error;
+                            
+                            await supabase.auth.signOut();
+                            toast.success("Conta apagada com sucesso");
+                            navigate("/");
+                          } catch (error: unknown) {
+                            toast.error("Erro ao apagar conta. Contate o suporte.");
+                            setDeleting(false);
+                          }
+                        }}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Apagar Conta
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </CardContent>
           </form>
         </Card>
