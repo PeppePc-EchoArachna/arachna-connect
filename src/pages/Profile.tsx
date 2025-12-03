@@ -331,23 +331,20 @@ const Profile = () => {
                     <Label>Tipos de Eventos</Label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {eventTypes.map((event) => (
-                        <div
+                        <label
                           key={event.id}
+                          htmlFor={`event-${event.id}`}
                           className="flex items-center space-x-2 p-2 rounded-lg border border-border/50 hover:border-organizer-glow/50 transition-colors cursor-pointer"
-                          onClick={() => handleToggleEventType(event.id)}
                         >
                           <Checkbox
                             id={`event-${event.id}`}
                             checked={selectedEventTypes.includes(event.id)}
                             onCheckedChange={() => handleToggleEventType(event.id)}
                           />
-                          <Label
-                            htmlFor={`event-${event.id}`}
-                            className="cursor-pointer flex-1 text-sm"
-                          >
+                          <span className="flex-1 text-sm">
                             {event.label}
-                          </Label>
-                        </div>
+                          </span>
+                        </label>
                       ))}
                     </div>
                   </div>
