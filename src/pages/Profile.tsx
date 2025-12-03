@@ -123,10 +123,10 @@ const Profile = () => {
             .maybeSingle();
 
           if (organizerProfile) {
-            setSelectedEventTypes(organizerProfile.event_types || []);
-            setBudgetRange(organizerProfile.budget_range || "");
-            setEventFrequency(organizerProfile.event_frequency || "");
-            setCompanyName(organizerProfile.company_name || "");
+            setSelectedEventTypes(Array.isArray(organizerProfile.event_types) ? organizerProfile.event_types : []);
+            setBudgetRange(typeof organizerProfile.budget_range === 'string' ? organizerProfile.budget_range : "");
+            setEventFrequency(typeof organizerProfile.event_frequency === 'string' ? organizerProfile.event_frequency : "");
+            setCompanyName(typeof organizerProfile.company_name === 'string' ? organizerProfile.company_name : "");
           }
         }
       } catch (error: any) {
