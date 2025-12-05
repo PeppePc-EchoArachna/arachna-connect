@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, User, Heart, MessageCircle, Search } from "lucide-react";
+import { LogOut, User, Heart, MessageCircle, Search, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import webPattern from "@/assets/web-pattern.jpg";
 
@@ -52,7 +52,7 @@ const Feed = () => {
       fetchProfiles();
       fetchFavorites();
     }
-  }, [user, navigate]);
+  }, [user, navigate, searchTerm, locationFilter, branchFilter, showOnlyFavorites]);
 
   const fetchFavorites = async () => {
     if (!user) return;
@@ -273,12 +273,15 @@ const Feed = () => {
                     className="pl-10"
                   />
                 </div>
-                <Input
-                  placeholder="Localização..."
-                  value={locationFilter}
-                  onChange={(e) => setLocationFilter(e.target.value)}
-                  className="w-40"
-                />
+                <div className="relative w-40">
+                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Localização..."
+                    value={locationFilter}
+                    onChange={(e) => setLocationFilter(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
                 {currentUserType === 'organizer' && (
                   <Select value={branchFilter} onValueChange={setBranchFilter}>
                     <SelectTrigger className="w-48">
@@ -300,7 +303,6 @@ const Feed = () => {
                   <Heart className={`h-4 w-4 mr-2 ${showOnlyFavorites ? "fill-current" : ""}`} />
                   Favoritos
                 </Button>
-                <Button onClick={fetchProfiles}>Filtrar</Button>
               </div>
             </div>
 
