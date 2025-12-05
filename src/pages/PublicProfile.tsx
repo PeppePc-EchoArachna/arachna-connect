@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Heart, MessageCircle, Phone, Mail } from "lucide-react";
+import { ArrowLeft, Heart, MessageCircle, Phone, Mail, MapPin, Building2, Calendar, DollarSign, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import webPattern from "@/assets/web-pattern.jpg";
 
@@ -159,6 +159,24 @@ export default function PublicProfile() {
     other: "Outro",
   };
 
+  const eventFrequencyLabels: Record<string, string> = {
+    weekly: "Semanalmente",
+    biweekly: "Quinzenalmente",
+    monthly: "Mensalmente",
+    quarterly: "Trimestralmente",
+    yearly: "Anualmente",
+    sporadic: "Esporadicamente",
+  };
+
+  const budgetRangeLabels: Record<string, string> = {
+    "under_1000": "Até R$ 1.000",
+    "1000_5000": "R$ 1.000 - R$ 5.000",
+    "5000_10000": "R$ 5.000 - R$ 10.000",
+    "10000_25000": "R$ 10.000 - R$ 25.000",
+    "above_25000": "Acima de R$ 25.000",
+    negotiable: "Negociável",
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -291,39 +309,40 @@ export default function PublicProfile() {
               </div>
             )}
 
-            {profile.artist_profile?.location && (
-              <div>
-                <h3 className="font-semibold mb-2">Localização</h3>
-                <p className="text-muted-foreground">
-                  {profile.artist_profile.location}
-                </p>
-              </div>
-            )}
 
-            {profile.organizer_profile?.location && (
-              <div>
-                <h3 className="font-semibold mb-2">Localização</h3>
-                <p className="text-muted-foreground">
-                  {profile.organizer_profile.location}
-                </p>
+            {(profile.artist_profile?.location || profile.organizer_profile?.location) && (
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/20 border border-border/30">
+                <MapPin className="w-5 h-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <h3 className="font-semibold mb-1">Localização</h3>
+                  <p className="text-muted-foreground">
+                    {profile.artist_profile?.location || profile.organizer_profile?.location}
+                  </p>
+                </div>
               </div>
             )}
 
             {profile.artist_profile?.experience_years && (
-              <div>
-                <h3 className="font-semibold mb-2">Experiência</h3>
-                <p className="text-muted-foreground">
-                  {profile.artist_profile.experience_years} anos
-                </p>
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/20 border border-border/30">
+                <Briefcase className="w-5 h-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <h3 className="font-semibold mb-1">Experiência</h3>
+                  <p className="text-muted-foreground">
+                    {profile.artist_profile.experience_years} {profile.artist_profile.experience_years === 1 ? 'ano' : 'anos'} de experiência
+                  </p>
+                </div>
               </div>
             )}
 
             {profile.artist_profile?.availability && (
-              <div>
-                <h3 className="font-semibold mb-2">Disponibilidade</h3>
-                <p className="text-muted-foreground">
-                  {profile.artist_profile.availability}
-                </p>
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/20 border border-border/30">
+                <Calendar className="w-5 h-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <h3 className="font-semibold mb-1">Disponibilidade</h3>
+                  <p className="text-muted-foreground">
+                    {profile.artist_profile.availability}
+                  </p>
+                </div>
               </div>
             )}
 
@@ -341,35 +360,59 @@ export default function PublicProfile() {
                 </div>
               )}
 
-            {profile.organizer_profile?.event_types &&
-              profile.organizer_profile.event_types.length > 0 && (
-                <div>
-                  <h3 className="font-semibold mb-2">Tipos de Eventos</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {profile.organizer_profile.event_types.map((type, index) => (
-                      <Badge key={index} variant="outline">
-                        {type}
-                      </Badge>
-                    ))}
-                  </div>
+            {/* Organizer-specific sections with better formatting */}
+            {profile.organizer_profile && (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg border-b border-border/50 pb-2">
+                  Informações do Organizador
+                </h3>
+                
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {profile.organizer_profile.event_types &&
+                    profile.organizer_profile.event_types.length > 0 && (
+                      <div className="flex items-start gap-3 p-4 rounded-lg bg-organizer/10 border border-organizer/20">
+                        <Calendar className="w-5 h-5 text-organizer mt-0.5" />
+                        <div>
+                          <h4 className="font-medium mb-2">Tipos de Eventos</h4>
+                          <div className="flex flex-wrap gap-1.5">
+                            {profile.organizer_profile.event_types.map((type, index) => (
+                              <Badge 
+                                key={index} 
+                                variant="outline"
+                                className="bg-organizer/10 border-organizer/30 text-organizer-foreground"
+                              >
+                                {type}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                  {profile.organizer_profile.event_frequency && (
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-organizer/10 border border-organizer/20">
+                      <Calendar className="w-5 h-5 text-organizer mt-0.5" />
+                      <div>
+                        <h4 className="font-medium mb-1">Frequência de Eventos</h4>
+                        <p className="text-muted-foreground">
+                          {eventFrequencyLabels[profile.organizer_profile.event_frequency] || profile.organizer_profile.event_frequency}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {profile.organizer_profile.budget_range && (
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-organizer/10 border border-organizer/20">
+                      <DollarSign className="w-5 h-5 text-organizer mt-0.5" />
+                      <div>
+                        <h4 className="font-medium mb-1">Faixa de Orçamento</h4>
+                        <p className="text-muted-foreground">
+                          {budgetRangeLabels[profile.organizer_profile.budget_range] || profile.organizer_profile.budget_range}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-
-            {profile.organizer_profile?.event_frequency && (
-              <div>
-                <h3 className="font-semibold mb-2">Frequência de Eventos</h3>
-                <p className="text-muted-foreground">
-                  {profile.organizer_profile.event_frequency}
-                </p>
-              </div>
-            )}
-
-            {profile.organizer_profile?.budget_range && (
-              <div>
-                <h3 className="font-semibold mb-2">Faixa de Orçamento</h3>
-                <p className="text-muted-foreground">
-                  {profile.organizer_profile.budget_range}
-                </p>
               </div>
             )}
 
