@@ -96,6 +96,9 @@ const Profile = () => {
   const [portfolioItems, setPortfolioItems] = useState<string[]>([]);
   const [selectedArtisticBranches, setSelectedArtisticBranches] = useState<ArtisticBranch[]>([]);
 
+  // Shared fields
+  const [location, setLocation] = useState("");
+
   // Organizer fields
   const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([]);
   const [budgetRange, setBudgetRange] = useState("");
@@ -134,7 +137,7 @@ const Profile = () => {
         if (data?.user_type === 'artist') {
           const { data: artistProfile } = await supabase
             .from("artist_profiles")
-            .select("portfolio_items, artistic_branches")
+            .select("portfolio_items, artistic_branches, location")
             .eq("profile_id", user.id)
             .maybeSingle();
 
@@ -147,6 +150,7 @@ const Profile = () => {
             if (Array.isArray(artistProfile.artistic_branches)) {
               setSelectedArtisticBranches(artistProfile.artistic_branches);
             }
+            setLocation(artistProfile.location || "");
           }
         }
 
@@ -162,6 +166,7 @@ const Profile = () => {
             setBudgetRange(typeof organizerProfile.budget_range === 'string' ? organizerProfile.budget_range : "");
             setEventFrequency(typeof organizerProfile.event_frequency === 'string' ? organizerProfile.event_frequency : "");
             setCompanyName(typeof organizerProfile.company_name === 'string' ? organizerProfile.company_name : "");
+            setLocation(organizerProfile.location || "");
           }
         }
       } catch (error: any) {
@@ -225,6 +230,7 @@ const Profile = () => {
             budget_range: budgetRange || null,
             event_frequency: eventFrequency || null,
             company_name: companyName || null,
+            location: location || null,
           })
           .eq("profile_id", user.id);
 
@@ -237,6 +243,7 @@ const Profile = () => {
           .from("artist_profiles")
           .update({
             artistic_branches: selectedArtisticBranches,
+            location: location || null,
           })
           .eq("profile_id", user.id);
 
@@ -357,6 +364,18 @@ const Profile = () => {
                     maxLength={20}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="location">Localização (opcional)</Label>
+                <Input
+                  id="location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="São Paulo, SP"
+                  className="bg-background/50"
+                  maxLength={100}
+                />
               </div>
 
               <div className="space-y-2">
